@@ -48,7 +48,7 @@ class InferGroundingDinoParam(core.CWorkflowTaskParam):
         # Parameters values are stored as string and accessible like a python dict
         self.model_name = params["model_name"]
         self.prompt = params["prompt"]
-        self.conf_thresh = float(params["conf_thresh"])
+        self.conf_thres = float(params["conf_thres"])
         self.conf_thres_text = float(params["conf_thres_text"])
         self.update = True
 
@@ -59,7 +59,7 @@ class InferGroundingDinoParam(core.CWorkflowTaskParam):
         params = {}
         params["model_name"] = str(self.model_name)
         params["prompt"] = str(self.prompt)
-        params["conf_thresh"] = str(self.conf_thresh)
+        params["conf_thres"] = str(self.conf_thres)
         params["conf_thres_text"] = str(self.conf_thres_text)
         return params
 
