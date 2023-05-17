@@ -25,10 +25,9 @@ import os
 import subprocess
 
 import torch
+
 from setuptools import find_packages, setup
 from torch.utils.cpp_extension import CUDA_HOME, CppExtension, CUDAExtension
-
-print("CUDA_HOME:", CUDA_HOME)
 
 # groundingdino version info
 version = "0.1.0"
