@@ -19,7 +19,7 @@
 from ikomia import core, dataprocess
 from ikomia.utils import pyqtutils, qtconversion
 from infer_grounding_dino.infer_grounding_dino_process import InferGroundingDinoParam
-
+from torch.cuda import is_available
 # PyQt GUI framework
 from PyQt5.QtWidgets import *
 
@@ -38,9 +38,12 @@ class InferGroundingDinoWidget(core.CWorkflowTaskWidget):
         else:
             self.parameters = param
 
-        
         # Create layout : QGridLayout by default
         self.grid_layout = QGridLayout()
+
+        # Cuda
+        self.check_cuda = pyqtutils.append_check(self.grid_layout, "Cuda", self.parameters.cuda and is_available())
+        self.check_cuda.setEnabled(is_available())
 
         # Models name
         self.combo_model = pyqtutils.append_combo(self.grid_layout, "Model")
@@ -68,8 +71,8 @@ class InferGroundingDinoWidget(core.CWorkflowTaskWidget):
         
     def on_apply(self):
         # Apply button clicked slot
-
         # Get parameters from widget
+        self.parameters.cuda = self.check_cuda.isChecked()
         self.parameters.model_name = self.combo_model.currentText()
         self.parameters.prompt = self.edit_prompt.text()
         self.parameters.conf_thres = self.spin_conf_thres_box.value()

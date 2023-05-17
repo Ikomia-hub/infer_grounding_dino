@@ -17,13 +17,13 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import copy
-from ikomia import core, dataprocess
+from ikomia import core, dataprocess, utils
 from infer_grounding_dino.GroundingDINO.groundingdino.util.inference import load_model, predict
 import infer_grounding_dino.GroundingDINO.groundingdino.datasets.transforms as T
-from torchvision.ops import box_convert
-import os
-import numpy as np
 from PIL import Image
+from torchvision.ops import box_convert
+import numpy as np
+import os
 import torch
 import urllib.request
 
@@ -41,6 +41,7 @@ class InferGroundingDinoParam(core.CWorkflowTaskParam):
         self.model_name = "Swin-T"
         self.conf_thres = 0.35
         self.conf_thres_text = 0.25
+        self.cuda = torch.cuda.is_available()
         self.update = False
 
     def set_values(self, params):
@@ -50,6 +51,7 @@ class InferGroundingDinoParam(core.CWorkflowTaskParam):
         self.prompt = params["prompt"]
         self.conf_thres = float(params["conf_thres"])
         self.conf_thres_text = float(params["conf_thres_text"])
+        self.cuda = utils.strtobool(params["cuda"])
         self.update = True
 
 
@@ -61,6 +63,7 @@ class InferGroundingDinoParam(core.CWorkflowTaskParam):
         params["prompt"] = str(self.prompt)
         params["conf_thres"] = str(self.conf_thres)
         params["conf_thres_text"] = str(self.conf_thres_text)
+        params["cuda"] = str(self.cuda)
         return params
 
 
@@ -78,6 +81,7 @@ class InferGroundingDino(dataprocess.CObjectDetectionTask):
         else:
             self.set_param_object(copy.deepcopy(param))
 
+        self.device = torch.device("cpu")
         self.model_weight = None
         self.model = None
         self.model_file_name = "groundingdino_swint_ogc.pth"
@@ -122,6 +126,8 @@ class InferGroundingDino(dataprocess.CObjectDetectionTask):
         param = self.get_param_object()
 
         if param.update or self.model is None:
+            self.device = torch.device("cuda") if param.cuda else torch.device("cpu")
+
             if param.model_name == "Swin-B":
                 self.model_file_name = "groundingdino_swinb_cogcoor.pth"
                 self.config_file_name = "GroundingDINO_SwinB_cfg.py"
@@ -154,8 +160,11 @@ class InferGroundingDino(dataprocess.CObjectDetectionTask):
                 file_path = os.path.join(weights_folder, self.model_file_name)
                 urllib.request.urlretrieve(url, file_path)
                 print("Download completed!")
-
-            self.model = load_model(model_config, model_weigth)
+    
+            self.model = load_model(
+                                model_config_path=model_config,
+                                model_checkpoint_path=model_weigth, 
+                                device=self.device)
 
         image = self.transform_image(src_image)
 
