@@ -18,8 +18,8 @@
 
 import copy
 from ikomia import core, dataprocess, utils
-from infer_grounding_dino.GroundingDINO.groundingdino.util.inference import load_model, predict
-import infer_grounding_dino.GroundingDINO.groundingdino.datasets.transforms as T
+from groundingdino.util.inference import load_model, predict
+import groundingdino.datasets.transforms as T
 from PIL import Image
 from torchvision.ops import box_convert
 import numpy as np

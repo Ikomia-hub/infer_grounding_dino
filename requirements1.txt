@@ -10,4 +10,3 @@ yapf
 timm
 supervision==0.6.0
 pycocotools
--e file://../GroundingDINO
