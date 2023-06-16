@@ -1,1 +1,1 @@
--e git+https://github.com/IDEA-Research/GroundingDINO.git@39b1472457b8264adc8581d354bb1d1956ec7ee7#egg=groundingdino
+groundingdino-py==0.4.0
