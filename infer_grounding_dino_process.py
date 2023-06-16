@@ -54,7 +54,6 @@ class InferGroundingDinoParam(core.CWorkflowTaskParam):
         self.cuda = utils.strtobool(params["cuda"])
         self.update = True
 
-
     def get_values(self):
         # Send parameters values to Ikomia application
         # Create the specific dict structure (string container)
@@ -88,13 +87,13 @@ class InferGroundingDino(dataprocess.CObjectDetectionTask):
         self.config_file_name = "GroundingDINO_SwinT_OGC.py"
         self.url_base = "https://github.com/IDEA-Research/GroundingDINO/releases/download/"
         self.url_ext = "v0.1.0-alpha/groundingdino_swint_ogc.pth"
-        
+
 
     def get_progress_steps(self):
         # Function returning the number of progress steps for this process
         # This is handled by the main progress bar of Ikomia application
         return 1
-    
+
     def transform_image(self, image):
         transform = T.Compose(
                 [
@@ -141,14 +140,15 @@ class InferGroundingDino(dataprocess.CObjectDetectionTask):
                                         "config", 
                                         self.config_file_name
                                     )
-            
+
             model_weigth = os.path.join(
                                 os.path.dirname(
                                         os.path.realpath(__file__)),
                                         "weights",
                                         self.model_file_name,
                                     )
-            
+            param.update = False
+
             # Download model weight if not exist
             weights_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "weights")
             if not os.path.isdir(weights_folder):
@@ -160,7 +160,7 @@ class InferGroundingDino(dataprocess.CObjectDetectionTask):
                 file_path = os.path.join(weights_folder, self.model_file_name)
                 urllib.request.urlretrieve(url, file_path)
                 print("Download completed!")
-    
+
             self.model = load_model(
                                 model_config_path=model_config,
                                 model_checkpoint_path=model_weigth, 
@@ -169,15 +169,15 @@ class InferGroundingDino(dataprocess.CObjectDetectionTask):
         image = self.transform_image(src_image)
 
         boxes, scores, phrases = predict(
-                                    model=self.model, 
-                                    image=image, 
-                                    caption=param.prompt, 
-                                    box_threshold=param.conf_thres, 
+                                    model=self.model,
+                                    image=image,
+                                    caption=param.prompt,
+                                    box_threshold=param.conf_thres,
                                     text_threshold=param.conf_thres_text
                                 )
 
         boxes_xyxy = self.resize_bbox(src_image, boxes)
- 
+
         self.set_names(phrases)
 
         scores = scores.detach().cpu().numpy()
