@@ -47,12 +47,12 @@ class InferGroundingDinoParam(core.CWorkflowTaskParam):
     def set_values(self, params):
         # Set parameters values from Ikomia application
         # Parameters values are stored as string and accessible like a python dict
-        self.model_name = params["model_name"]
+        if self.model_name != params["model_name"] or \
+                self.cuda != utils.strtobool(params["cuda"]):
+            self.update = True
+        self.conf_thres != float(params["conf_thres"])
+        self.conf_thres_text != float(params["conf_thres_text"])
         self.prompt = params["prompt"]
-        self.conf_thres = float(params["conf_thres"])
-        self.conf_thres_text = float(params["conf_thres_text"])
-        self.cuda = utils.strtobool(params["cuda"])
-        self.update = True
 
     def get_values(self):
         # Send parameters values to Ikomia application
@@ -88,7 +88,6 @@ class InferGroundingDino(dataprocess.CObjectDetectionTask):
         self.url_base = "https://github.com/IDEA-Research/GroundingDINO/releases/download/"
         self.url_ext = "v0.1.0-alpha/groundingdino_swint_ogc.pth"
 
-
     def get_progress_steps(self):
         # Function returning the number of progress steps for this process
         # This is handled by the main progress bar of Ikomia application
@@ -96,12 +95,12 @@ class InferGroundingDino(dataprocess.CObjectDetectionTask):
 
     def transform_image(self, image):
         transform = T.Compose(
-                [
+            [
                 T.RandomResize([800], max_size=1333),
                 T.ToTensor(),
                 T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-                ]
-            )
+            ]
+        )
         img_pil = Image.fromarray(image).convert("RGB")
         image_transformed, _ = transform(img_pil, None)
         return image_transformed
@@ -109,7 +108,8 @@ class InferGroundingDino(dataprocess.CObjectDetectionTask):
     def resize_bbox(self, image_source, boxes):
         h, w, _ = image_source.shape
         boxes = boxes * torch.Tensor([w, h, w, h])
-        xyxy = box_convert(boxes=boxes, in_fmt="cxcywh", out_fmt="xyxy").numpy()
+        xyxy = box_convert(boxes=boxes, in_fmt="cxcywh",
+                           out_fmt="xyxy").numpy()
         return xyxy
 
     def run(self):
@@ -125,7 +125,9 @@ class InferGroundingDino(dataprocess.CObjectDetectionTask):
         param = self.get_param_object()
 
         if param.update or self.model is None:
-            self.device = torch.device("cuda") if param.cuda else torch.device("cpu")
+            self.device = torch.device(
+                "cuda") if param.cuda else torch.device("cpu")
+            print("Loading model...")
 
             if param.model_name == "Swin-B":
                 self.model_file_name = "groundingdino_swinb_cogcoor.pth"
@@ -133,24 +135,25 @@ class InferGroundingDino(dataprocess.CObjectDetectionTask):
                 self.url_ext = "v0.1.0-alpha2/groundingdino_swinb_cogcoor.pth"
 
             model_config = os.path.join(
-                                os.path.dirname(
-                                        os.path.realpath(__file__)),
-                                        "GroundingDINO",
-                                        "groundingdino",
-                                        "config", 
-                                        self.config_file_name
-                                    )
+                os.path.dirname(
+                    os.path.realpath(__file__)),
+                "GroundingDINO",
+                "groundingdino",
+                "config",
+                self.config_file_name
+            )
 
             model_weigth = os.path.join(
-                                os.path.dirname(
-                                        os.path.realpath(__file__)),
-                                        "weights",
-                                        self.model_file_name,
-                                    )
+                os.path.dirname(
+                    os.path.realpath(__file__)),
+                "weights",
+                self.model_file_name,
+            )
             param.update = False
 
             # Download model weight if not exist
-            weights_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "weights")
+            weights_folder = os.path.join(os.path.dirname(
+                os.path.abspath(__file__)), "weights")
             if not os.path.isdir(weights_folder):
                 os.mkdir(weights_folder)
 
@@ -162,19 +165,19 @@ class InferGroundingDino(dataprocess.CObjectDetectionTask):
                 print("Download completed!")
 
             self.model = load_model(
-                                model_config_path=model_config,
-                                model_checkpoint_path=model_weigth, 
-                                device=self.device)
+                model_config_path=model_config,
+                model_checkpoint_path=model_weigth,
+                device=self.device)
 
         image = self.transform_image(src_image)
 
         boxes, scores, phrases = predict(
-                                    model=self.model,
-                                    image=image,
-                                    caption=param.prompt,
-                                    box_threshold=param.conf_thres,
-                                    text_threshold=param.conf_thres_text
-                                )
+            model=self.model,
+            image=image,
+            caption=param.prompt,
+            box_threshold=param.conf_thres,
+            text_threshold=param.conf_thres_text
+        )
 
         boxes_xyxy = self.resize_bbox(src_image, boxes)
 
@@ -214,7 +217,7 @@ class InferGroundingDinoFactory(dataprocess.CTaskFactory):
                                 "that can localize objects in an image with a natural language query. " \
                                 "Two models are available Swin-T (tiny) and Swin-B (Base). "\
                                 "They have been trained on the COCO dataset. " \
-        # relative path -> as displayed in Ikomia application process tree
+            # relative path -> as displayed in Ikomia application process tree
         self.info.path = "Plugins/Python/Detection"
         self.info.version = "1.0.0"
         self.info.icon_path = "icons/icon.png"

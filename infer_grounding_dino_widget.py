@@ -42,7 +42,8 @@ class InferGroundingDinoWidget(core.CWorkflowTaskWidget):
         self.grid_layout = QGridLayout()
 
         # Cuda
-        self.check_cuda = pyqtutils.append_check(self.grid_layout, "Cuda", self.parameters.cuda and is_available())
+        self.check_cuda = pyqtutils.append_check(
+            self.grid_layout, "Cuda", self.parameters.cuda and is_available())
         self.check_cuda.setEnabled(is_available())
 
         # Models name
@@ -52,32 +53,36 @@ class InferGroundingDinoWidget(core.CWorkflowTaskWidget):
         self.combo_model.setCurrentText(self.parameters.model_name)
 
         # Prompt
-        self.edit_prompt = pyqtutils.append_edit(self.grid_layout, "Prompt", self.parameters.prompt)
+        self.edit_prompt = pyqtutils.append_edit(
+            self.grid_layout, "Prompt", self.parameters.prompt)
 
         # Confidence thresholds
         self.spin_conf_thres_box = pyqtutils.append_double_spin(self.grid_layout, "Confidence threshold boxes",
-                                                          self.parameters.conf_thres,
-                                                          min=0., max=1., step=0.01, decimals=2)
-        
+                                                                self.parameters.conf_thres,
+                                                                min=0., max=1., step=0.01, decimals=2)
+
         self.spin_conf_thres_text = pyqtutils.append_double_spin(self.grid_layout, "Confidence threshold text",
-                                                    self.parameters.conf_thres_text,
-                                                    min=0., max=1., step=0.01, decimals=2)
+                                                                 self.parameters.conf_thres_text,
+                                                                 min=0., max=1., step=0.01, decimals=2)
 
         # PyQt -> Qt wrapping
         layout_ptr = qtconversion.PyQtToQt(self.grid_layout)
 
         # Set widget layout
         self.set_layout(layout_ptr)
-        
+
     def on_apply(self):
         # Apply button clicked slot
         # Get parameters from widget
-        self.parameters.cuda = self.check_cuda.isChecked()
-        self.parameters.model_name = self.combo_model.currentText()
-        self.parameters.prompt = self.edit_prompt.text()
+        model_name = self.combo_model.currentText()
+        is_cuda = self.check_cuda.isChecked()
+        if model_name != self.parameters.model_name or \
+                is_cuda != self.parameters.cuda:
+            self.parameters.update = True
         self.parameters.conf_thres = self.spin_conf_thres_box.value()
         self.parameters.conf_thres_text = self.spin_conf_thres_text.value()
-        self.parameters.update = True
+        self.parameters.cuda = is_cuda
+        self.parameters.prompt = self.edit_prompt.text()
 
         # Send signal to launch the process
         self.emit_apply(self.parameters)
