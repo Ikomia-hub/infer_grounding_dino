@@ -78,11 +78,12 @@ class InferGroundingDinoWidget(core.CWorkflowTaskWidget):
         is_cuda = self.check_cuda.isChecked()
         if model_name != self.parameters.model_name or \
                 is_cuda != self.parameters.cuda:
-            self.parameters.update = True
+            self.parameters.model_name = model_name
+            self.parameters.cuda = is_cuda
         self.parameters.conf_thres = self.spin_conf_thres_box.value()
         self.parameters.conf_thres_text = self.spin_conf_thres_text.value()
-        self.parameters.cuda = is_cuda
         self.parameters.prompt = self.edit_prompt.text()
+        self.parameters.update = True
 
         # Send signal to launch the process
         self.emit_apply(self.parameters)

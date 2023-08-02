@@ -50,8 +50,10 @@ class InferGroundingDinoParam(core.CWorkflowTaskParam):
         if self.model_name != params["model_name"] or \
                 self.cuda != utils.strtobool(params["cuda"]):
             self.update = True
-        self.conf_thres != float(params["conf_thres"])
-        self.conf_thres_text != float(params["conf_thres_text"])
+        # self.model_name = params["model_name"]
+        # self.cuda = utils.strtobool(params["cuda"])
+        self.conf_thres = float(params["conf_thres"])
+        self.conf_thres_text = float(params["conf_thres_text"])
         self.prompt = params["prompt"]
 
     def get_values(self):
@@ -127,8 +129,6 @@ class InferGroundingDino(dataprocess.CObjectDetectionTask):
         if param.update or self.model is None:
             self.device = torch.device(
                 "cuda") if param.cuda else torch.device("cpu")
-            print("Loading model...")
-
             if param.model_name == "Swin-B":
                 self.model_file_name = "groundingdino_swinb_cogcoor.pth"
                 self.config_file_name = "GroundingDINO_SwinB_cfg.py"
