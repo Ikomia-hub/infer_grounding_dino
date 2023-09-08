@@ -19,10 +19,9 @@
     </a> 
 </p>
 
-The Algorithm proposes a zero-shot object grounding model that can localize objects in an image with a natural language query. Two models are available Swin-T (tiny) and Swin-B (Base). They have been trained on the COCO dataset. 
+The Algorithm proposes a zero-shot object grounding model that can localize objects in an image with a natural language query. 
 
-[Insert illustrative image here. Image must be accessible publicly, in algorithm Github repository for example.
-<img src="images/illustration.png"  alt="Illustrative image" width="30%" height="30%">]
+![Grounding Dino dog detection](https://raw.githubusercontent.com/Ikomia-hub/infer_grounding_dino/main/icons/output.jpg)
 
 ## :rocket: Use with Ikomia API
 
@@ -36,20 +35,23 @@ pip install ikomia
 
 #### 2. Create your workflow
 
-[Change the sample image URL to fit algorithm purpose]
-
 ```python
-import ikomia
 from ikomia.dataprocess.workflow import Workflow
+from ikomia.utils.displayIO import display
+
 
 # Init your workflow
-wf = Workflow()
+wf = Workflow()    
 
-# Add algorithm
-algo = wf.add_task(name="infer_grounding_dino", auto_connect=True)
+# Add the Grounding DINO Object Detector
+dino = wf.add_task(name="infer_grounding_dino", auto_connect=True)
 
 # Run on your image  
-wf.run_on(url="example_image.png")
+# wf.run_on(path="path/to/your/image.png")
+wf.run_on(url="https://raw.githubusercontent.com/Ikomia-dev/notebooks/main/examples/img/img_dog.png")
+
+# Inspect your results
+display(dino.get_image_with_graphics())
 ```
 
 ## :sunny: Use with Ikomia Studio
@@ -62,29 +64,37 @@ Ikomia Studio offers a friendly UI with the same features as the API.
 
 ## :pencil: Set algorithm parameters
 
-[Explain each algorithm parameters]
+- **model_name** (str) - default 'Swin-T':  The GroundingDINO algorithm has two different checkpoint models: ‘Swin-B’ and ‘Swin-T’, with respectively, 172M and 341M of parameters.  
+- **prompt** (str) - default 'car . person . dog .': Text prompt for the model
+- **conf_thres** (float) - default '0.35': Box threshold for the prediction‍
+- **conf_thres_text** (float) - default '0.25': Text threshold for the prediction
+- **cuda** (bool): If True, CUDA-based inference (GPU). If False, run on CPU
 
-[Change the sample image URL to fit algorithm purpose]
+**Parameters** should be in **strings format**  when added to the dictionary.
 
 ```python
-import ikomia
 from ikomia.dataprocess.workflow import Workflow
+from ikomia.utils.displayIO import display
 
 # Init your workflow
-wf = Workflow()
+wf = Workflow()    
 
-# Add algorithm
-algo = wf.add_task(name="infer_grounding_dino", auto_connect=True)
+# Add the Grounding DINO Object Detector
+dino = wf.add_task(name="infer_grounding_dino", auto_connect=True)
 
-algo.set_parameters({
-    "param1": "value1",
-    "param2": "value2",
-    ...
+dino.set_parameters({
+    "model_name": "Swin-B",
+    "prompt": "laptops . smartphone . headphone .",
+    "conf_thres": "0.35",
+    "conf_thres_text": "0.25"
 })
 
 # Run on your image  
-wf.run_on(url="example_image.png")
+# wf.run_on(path="path/to/your/image.png")
+wf.run_on(url="https://raw.githubusercontent.com/Ikomia-dev/notebooks/main/examples/img/img_work.jpg")
 
+# Inspect your results
+display(dino.get_image_with_graphics())
 ```
 
 ## :mag: Explore algorithm outputs
@@ -102,7 +112,7 @@ wf = Workflow()
 algo = wf.add_task(name="infer_grounding_dino", auto_connect=True)
 
 # Run on your image  
-wf.run_on(url="example_image.png")
+wf.run_on(url="https://raw.githubusercontent.com/Ikomia-dev/notebooks/main/examples/img/img_dog.png")
 
 # Iterate over outputs
 for output in algo.get_outputs()
@@ -114,4 +124,4 @@ for output in algo.get_outputs()
 
 ## :fast_forward: Advanced usage 
 
-[optional]
+Check out the [Grounding Dino blog post](https://www.ikomia.ai/blog/zero-shot-object-detection-with-grounding-dino-using-the-ikomia-api) for more information on this algorithm.
