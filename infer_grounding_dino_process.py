@@ -18,8 +18,9 @@
 
 import copy
 from ikomia import core, dataprocess, utils
-from groundingdino.util.inference import load_model, predict
-import groundingdino.datasets.transforms as T
+from groundingdino.util.inference import load_model
+from groundingdino.util.inference import predict
+import infer_grounding_dino.GroundingDINO.groundingdino.datasets.transforms as T
 from PIL import Image
 from torchvision.ops import box_convert
 import numpy as np
@@ -89,6 +90,7 @@ class InferGroundingDino(dataprocess.CObjectDetectionTask):
         self.config_file_name = "GroundingDINO_SwinT_OGC.py"
         self.url_base = "https://github.com/IDEA-Research/GroundingDINO/releases/download/"
         self.url_ext = "v0.1.0-alpha/groundingdino_swint_ogc.pth"
+        self.model_folder = os.path.join(os.path.dirname(os.path.realpath(__file__)), "weights")
 
     def get_progress_steps(self):
         # Function returning the number of progress steps for this process
@@ -127,8 +129,10 @@ class InferGroundingDino(dataprocess.CObjectDetectionTask):
         param = self.get_param_object()
 
         if param.update or self.model is None:
+            torch_dir_ori = torch.hub.get_dir()
+            torch.hub.set_dir(self.model_folder)   
             self.device = torch.device(
-                "cuda") if param.cuda else torch.device("cpu")
+                "cuda") if param.cuda and torch.cuda.is_available() else torch.device("cpu")
             if param.model_name == "Swin-B":
                 self.model_file_name = "groundingdino_swinb_cogcoor.pth"
                 self.config_file_name = "GroundingDINO_SwinB_cfg.py"
@@ -149,6 +153,7 @@ class InferGroundingDino(dataprocess.CObjectDetectionTask):
                 "weights",
                 self.model_file_name,
             )
+            torch.hub.set_dir(torch_dir_ori)
             param.update = False
 
             # Download model weight if not exist
