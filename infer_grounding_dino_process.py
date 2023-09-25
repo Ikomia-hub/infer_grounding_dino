@@ -16,6 +16,9 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+
+import os
+os.environ['TRANSFORMERS_CACHE'] = os.path.join(os.path.dirname(os.path.realpath(__file__)))
 import copy
 from ikomia import core, dataprocess, utils
 from groundingdino.util.inference import load_model
@@ -24,10 +27,9 @@ import infer_grounding_dino.GroundingDINO.groundingdino.datasets.transforms as T
 from PIL import Image
 from torchvision.ops import box_convert
 import numpy as np
-import os
+
 import torch
 import urllib.request
-
 
 # --------------------
 # - Class to handle the process parameters
@@ -92,6 +94,7 @@ class InferGroundingDino(dataprocess.CObjectDetectionTask):
         self.url_ext = "v0.1.0-alpha/groundingdino_swint_ogc.pth"
         self.model_folder = os.path.join(os.path.dirname(os.path.realpath(__file__)), "weights")
 
+
     def get_progress_steps(self):
         # Function returning the number of progress steps for this process
         # This is handled by the main progress bar of Ikomia application
@@ -130,7 +133,7 @@ class InferGroundingDino(dataprocess.CObjectDetectionTask):
 
         if param.update or self.model is None:
             torch_dir_ori = torch.hub.get_dir()
-            torch.hub.set_dir(self.model_folder)   
+            torch.hub.set_dir(self.model_folder)  
             self.device = torch.device(
                 "cuda") if param.cuda and torch.cuda.is_available() else torch.device("cpu")
             if param.model_name == "Swin-B":
@@ -153,6 +156,7 @@ class InferGroundingDino(dataprocess.CObjectDetectionTask):
                 "weights",
                 self.model_file_name,
             )
+
             torch.hub.set_dir(torch_dir_ori)
             param.update = False
 
@@ -200,6 +204,7 @@ class InferGroundingDino(dataprocess.CObjectDetectionTask):
             self.add_object(index, cls, float(conf), x, y, w, h)
             index += 1
 
+        del os.environ['TRANSFORMERS_CACHE']
         # Step progress bar (Ikomia Studio):
         self.emit_step_progress()
 
