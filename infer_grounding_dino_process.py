@@ -224,11 +224,7 @@ class InferGroundingDinoFactory(dataprocess.CTaskFactory):
         # Set process information as string here
         self.info.name = "infer_grounding_dino"
         self.info.short_description = "Inference of the Grounding DINO model"
-        self.info.description = "The Algorithm proposes a zero-shot object grounding model "\
-                                "that can localize objects in an image with a natural language query. " \
-                                "Two models are available Swin-T (tiny) and Swin-B (Base). "\
-                                "They have been trained on the COCO dataset. " \
-            # relative path -> as displayed in Ikomia application process tree
+        # relative path -> as displayed in Ikomia application process tree
         self.info.path = "Plugins/Python/Detection"
         self.info.version = "1.0.0"
         self.info.icon_path = "icons/icon.png"
@@ -243,7 +239,8 @@ class InferGroundingDinoFactory(dataprocess.CTaskFactory):
         # URL of documentation
         self.info.documentation_link = "https://github.com/IDEA-Research/GroundingDINO"
         # Code source repository
-        self.info.repository = "https://github.com/IDEA-Research/GroundingDINO"
+        self.info.repository = "https://github.com/Ikomia-hub/infer_grounding_dino"
+        self.info.original_repository = "https://github.com/IDEA-Research/GroundingDINO"
         # Keywords used for search
         self.info.keywords = "Object,Detection,Grounding,DINO,Zero Shot, Bert, Swin Transformer"
 
