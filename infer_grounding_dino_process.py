@@ -16,20 +16,20 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
-import os
-os.environ['TRANSFORMERS_CACHE'] = os.path.join(os.path.dirname(os.path.realpath(__file__)))
 import copy
 from ikomia import core, dataprocess, utils
-from groundingdino.util.inference import load_model
+
+from infer_grounding_dino.utils.load_model_ik import model_loader
+
 from groundingdino.util.inference import predict
-import infer_grounding_dino.GroundingDINO.groundingdino.datasets.transforms as T
-from PIL import Image
-from torchvision.ops import box_convert
-import numpy as np
+import groundingdino.datasets.transforms as T
 
 import torch
+from torchvision.ops import box_convert
+from PIL import Image
 import urllib.request
+import os
+
 
 # --------------------
 # - Class to handle the process parameters
@@ -173,7 +173,8 @@ class InferGroundingDino(dataprocess.CObjectDetectionTask):
                 urllib.request.urlretrieve(url, file_path)
                 print("Download completed!")
 
-            self.model = load_model(
+
+            self.model = model_loader(
                 model_config_path=model_config,
                 model_checkpoint_path=model_weigth,
                 device=self.device)
@@ -185,7 +186,8 @@ class InferGroundingDino(dataprocess.CObjectDetectionTask):
             image=image,
             caption=param.prompt,
             box_threshold=param.conf_thres,
-            text_threshold=param.conf_thres_text
+            text_threshold=param.conf_thres_text,
+            device=self.device
         )
 
         boxes_xyxy = self.resize_bbox(src_image, boxes)
@@ -204,7 +206,6 @@ class InferGroundingDino(dataprocess.CObjectDetectionTask):
             self.add_object(index, cls, float(conf), x, y, w, h)
             index += 1
 
-        del os.environ['TRANSFORMERS_CACHE']
         # Step progress bar (Ikomia Studio):
         self.emit_step_progress()
 
