@@ -243,6 +243,8 @@ class InferGroundingDinoFactory(dataprocess.CTaskFactory):
         self.info.original_repository = "https://github.com/IDEA-Research/GroundingDINO"
         # Keywords used for search
         self.info.keywords = "Object,Detection,Grounding,DINO,Zero Shot, Bert, Swin Transformer"
+        self.info.algo_type = core.AlgoType.INFER
+        self.info.algo_tasks = "OBJECT_DETECTION"
 
     def create(self, param=None):
         # Create process object
