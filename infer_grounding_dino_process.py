@@ -226,7 +226,7 @@ class InferGroundingDinoFactory(dataprocess.CTaskFactory):
         self.info.short_description = "Inference of the Grounding DINO model"
         # relative path -> as displayed in Ikomia application process tree
         self.info.path = "Plugins/Python/Detection"
-        self.info.version = "1.0.1"
+        self.info.version = "1.0.2"
         self.info.icon_path = "icons/icon.png"
         self.info.authors = "Liu, Shilong and Zeng, Zhaoyang and Ren, Tianhe and Li, " \
                             "Feng and Zhang, Hao and Yang, Jie and Li, Chunyuan and Yang, "\
