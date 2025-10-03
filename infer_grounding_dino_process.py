@@ -15,20 +15,21 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 import copy
-from ikomia import core, dataprocess, utils
+import urllib.request
+import os
 
-from infer_grounding_dino.utils.load_model_ik import model_loader
+import torch
+from torchvision.ops import box_convert
+
+from PIL import Image
+
+from ikomia import core, dataprocess, utils
 
 from groundingdino.util.inference import predict
 import groundingdino.datasets.transforms as T
 
-import torch
-from torchvision.ops import box_convert
-from PIL import Image
-import urllib.request
-import os
+from infer_grounding_dino.utils.load_model_ik import model_loader
 
 
 # --------------------
@@ -50,24 +51,22 @@ class InferGroundingDinoParam(core.CWorkflowTaskParam):
     def set_values(self, params):
         # Set parameters values from Ikomia application
         # Parameters values are stored as string and accessible like a python dict
-        if self.model_name != params["model_name"] or \
-                self.cuda != utils.strtobool(params["cuda"]):
-            self.update = True
-        # self.model_name = params["model_name"]
-        # self.cuda = utils.strtobool(params["cuda"])
+        self.prompt = params["prompt"]
+        self.model_name = params["model_name"]
         self.conf_thres = float(params["conf_thres"])
         self.conf_thres_text = float(params["conf_thres_text"])
-        self.prompt = params["prompt"]
+        self.cuda = utils.strtobool(params["cuda"])
 
     def get_values(self):
         # Send parameters values to Ikomia application
         # Create the specific dict structure (string container)
-        params = {}
-        params["model_name"] = str(self.model_name)
-        params["prompt"] = str(self.prompt)
-        params["conf_thres"] = str(self.conf_thres)
-        params["conf_thres_text"] = str(self.conf_thres_text)
-        params["cuda"] = str(self.cuda)
+        params = {
+            "model_name": str(self.model_name),
+            "prompt": str(self.prompt),
+            "conf_thres": str(self.conf_thres),
+            "conf_thres_text": str(self.conf_thres_text),
+            "cuda": str(self.cuda)
+        }
         return params
 
 
@@ -94,93 +93,93 @@ class InferGroundingDino(dataprocess.CObjectDetectionTask):
         self.url_ext = "v0.1.0-alpha/groundingdino_swint_ogc.pth"
         self.model_folder = os.path.join(os.path.dirname(os.path.realpath(__file__)), "weights")
 
-
     def get_progress_steps(self):
         # Function returning the number of progress steps for this process
         # This is handled by the main progress bar of Ikomia application
         return 1
 
-    def transform_image(self, image):
+    @staticmethod
+    def transform_image(image):
         transform = T.Compose(
             [
                 T.RandomResize([800], max_size=1333),
                 T.ToTensor(),
                 T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-            ]
-        )
+            ])
         img_pil = Image.fromarray(image).convert("RGB")
         image_transformed, _ = transform(img_pil, None)
         return image_transformed
 
-    def resize_bbox(self, image_source, boxes):
+    @staticmethod
+    def resize_bbox(image_source, boxes):
         h, w, _ = image_source.shape
         boxes = boxes * torch.Tensor([w, h, w, h])
-        xyxy = box_convert(boxes=boxes, in_fmt="cxcywh",
-                           out_fmt="xyxy").numpy()
+        xyxy = box_convert(boxes=boxes, in_fmt="cxcywh", out_fmt="xyxy").numpy()
         return xyxy
+
+    def _load_model(self):
+        param = self.get_param_object()
+        torch_dir_ori = torch.hub.get_dir()
+        torch.hub.set_dir(self.model_folder)
+        self.device = torch.device("cuda") if param.cuda and torch.cuda.is_available() else torch.device("cpu")
+
+        if param.model_name == "Swin-B":
+            self.model_file_name = "groundingdino_swinb_cogcoor.pth"
+            self.config_file_name = "GroundingDINO_SwinB_cfg.py"
+            self.url_ext = "v0.1.0-alpha2/groundingdino_swinb_cogcoor.pth"
+
+        model_config = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)),
+            "GroundingDINO",
+            "groundingdino",
+            "config",
+            self.config_file_name
+        )
+
+        model_weigth = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)),
+            "weights",
+            self.model_file_name,
+        )
+        torch.hub.set_dir(torch_dir_ori)
+
+        # Download model weight if not exist
+        weights_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "weights")
+        if not os.path.isdir(weights_folder):
+            os.mkdir(weights_folder)
+
+        if not os.path.isfile(model_weigth):
+            url = os.path.join(self.url_base, self.url_ext)
+            print("Downloading model weight from {}".format(url))
+            file_path = os.path.join(weights_folder, self.model_file_name)
+            urllib.request.urlretrieve(url, file_path)
+            print("Download completed!")
+
+        self.model = model_loader(
+            model_config_path=model_config,
+            model_checkpoint_path=model_weigth,
+            device=self.device
+        )
+        param.update = False
+
+    def init_long_process(self):
+        self._load_model()
+        super().init_long_process()
 
     def run(self):
         # Core function of your process
         # Call begin_task_run() for initialization
         self.begin_task_run()
-
         # Get input :
         task_input = self.get_input(0)
         src_image = task_input.get_image()
-
         # Get parameters :
         param = self.get_param_object()
 
         if param.update or self.model is None:
-            torch_dir_ori = torch.hub.get_dir()
-            torch.hub.set_dir(self.model_folder)  
-            self.device = torch.device(
-                "cuda") if param.cuda and torch.cuda.is_available() else torch.device("cpu")
-            if param.model_name == "Swin-B":
-                self.model_file_name = "groundingdino_swinb_cogcoor.pth"
-                self.config_file_name = "GroundingDINO_SwinB_cfg.py"
-                self.url_ext = "v0.1.0-alpha2/groundingdino_swinb_cogcoor.pth"
-
-            model_config = os.path.join(
-                os.path.dirname(
-                    os.path.realpath(__file__)),
-                "GroundingDINO",
-                "groundingdino",
-                "config",
-                self.config_file_name
-            )
-
-            model_weigth = os.path.join(
-                os.path.dirname(
-                    os.path.realpath(__file__)),
-                "weights",
-                self.model_file_name,
-            )
-
-            torch.hub.set_dir(torch_dir_ori)
-            param.update = False
-
-            # Download model weight if not exist
-            weights_folder = os.path.join(os.path.dirname(
-                os.path.abspath(__file__)), "weights")
-            if not os.path.isdir(weights_folder):
-                os.mkdir(weights_folder)
-
-            if not os.path.isfile(model_weigth):
-                url = os.path.join(self.url_base, self.url_ext)
-                print("Downloading model weight from {}".format(url))
-                file_path = os.path.join(weights_folder, self.model_file_name)
-                urllib.request.urlretrieve(url, file_path)
-                print("Download completed!")
-
-
-            self.model = model_loader(
-                model_config_path=model_config,
-                model_checkpoint_path=model_weigth,
-                device=self.device)
+            self._load_model()
 
         image = self.transform_image(src_image)
-
         boxes, scores, phrases = predict(
             model=self.model,
             image=image,
@@ -191,11 +190,10 @@ class InferGroundingDino(dataprocess.CObjectDetectionTask):
         )
 
         boxes_xyxy = self.resize_bbox(src_image, boxes)
-
         self.set_names(phrases)
-
         scores = scores.detach().cpu().numpy()
         index = 0
+
         for box, score in zip(boxes_xyxy, scores):
             cls = int(index)
             conf = score
@@ -226,7 +224,8 @@ class InferGroundingDinoFactory(dataprocess.CTaskFactory):
         self.info.short_description = "Inference of the Grounding DINO model"
         # relative path -> as displayed in Ikomia application process tree
         self.info.path = "Plugins/Python/Detection"
-        self.info.version = "1.0.2"
+        self.info.version = "1.1.0"
+        self.info.min_ikomia_version = "0.15.0"
         self.info.icon_path = "icons/icon.png"
         self.info.authors = "Liu, Shilong and Zeng, Zhaoyang and Ren, Tianhe and Li, " \
                             "Feng and Zhang, Hao and Yang, Jie and Li, Chunyuan and Yang, "\
@@ -245,6 +244,10 @@ class InferGroundingDinoFactory(dataprocess.CTaskFactory):
         self.info.keywords = "Object,Detection,Grounding,DINO,Zero Shot, Bert, Swin Transformer"
         self.info.algo_type = core.AlgoType.INFER
         self.info.algo_tasks = "OBJECT_DETECTION"
+        self.info.hardware_config.min_cpu = 4
+        self.info.hardware_config.min_ram = 16
+        self.info.hardware_config.gpu_required = True
+        self.info.hardware_config.min_vram = 16
 
     def create(self, param=None):
         # Create process object
